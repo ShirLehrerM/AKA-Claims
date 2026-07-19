@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת AI לסיכום תביעות אכ"ע — סטטוס פרויקט</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F6F6F6;
+  --bg-soft: #E1E9F3;
+  --bg-soft-2: #EEF4FB;
+  --surface: #FFFFFF;
+  --surface-2: #FAFCFF;
+  --line: #D7E0EC;
+  --line-strong: #BDD2EB;
+  --blue: #3C65E3;
+  --blue-2: #5779EA;
+  --navy: #020140;
+  --mint: #CBF0C7;
+  --lime: #A2EB9A;
+  --magenta: #AF005F;
+  --fuchsia: #BF0374;
+  --amber: #FFB020;
+  --red: #D7263D;
+  --text: #172132;
+  --text-soft: #5E6B7E;
+  --shadow-sm: 0 6px 18px rgba(2,1,64,0.05);
+  --shadow-md: 0 14px 34px rgba(2,1,64,0.08);
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Heebo', sans-serif;
+  direction: rtl;
+  text-align: right;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft-2) 100%);
+  height: 100vh;
+  overflow: hidden;
+  color: var(--text);
+}
+
+/* ── HEADER ── */
+#header {
+  position: fixed;
+  top: 0; right: 0; left: 0;
+  height: 52px;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+#header-brand { display: flex; align-items: center; gap: 10px; }
+#header-logo {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 13px;
+}
+#header-product { font-weight: 700; font-size: 14px; color: var(--navy); }
+#header-slide-title { font-size: 13px; font-weight: 500; color: var(--text-soft); }
+#header-counter {
+  font-size: 12px; font-weight: 600; color: var(--text-soft);
+  background: var(--bg-soft); padding: 3px 12px;
+  border-radius: 20px; border: 1px solid var(--line);
+}
+
+/* ── PROGRESS ── */
+#progress-bar-wrap {
+  position: fixed; bottom: 0; right: 0; left: 0;
+  height: 4px; background: var(--line); z-index: 100;
+}
+#progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--blue-2));
+  transition: width 0.4s ease; border-radius: 2px;
+}
+
+/* ── NAV ── */
+#nav {
+  position: fixed; bottom: 14px; right: 0; left: 0;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  z-index: 100;
+}
+.nav-btn {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 50px; padding: 8px 22px;
+  font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--navy); cursor: pointer;
+  box-shadow: var(--shadow-sm); transition: all 0.2s;
+}
+.nav-btn:hover { background: var(--bg-soft); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.nav-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.nav-btn.primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+
+/* ── SLIDES ── */
+#slides-container {
+  margin-top: 52px; margin-bottom: 52px;
+  height: calc(100vh - 104px);
+  position: relative; overflow: hidden;
+}
+.slide {
+  position: absolute; inset: 0;
+  opacity: 0; transform: translateX(-40px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none; overflow-y: auto;
+}
+.slide.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+.slide.exit   { opacity: 0; transform: translateX(40px); }
+.slide::-webkit-scrollbar { width: 5px; }
+.slide::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+/* ════════════════════════════════
+   SLIDE 1 — COVER
+════════════════════════════════ */
+.slide-cover {
+  background: linear-gradient(135deg, var(--navy) 0%, #0c1870 50%, var(--blue) 100%);
+  display: flex; flex-direction: column;
+  justify-content: center; padding: 0 80px;
+}
+.cover-orb {
+  position: absolute; left: 60px; top: 50%; transform: translateY(-50%);
+  width: 380px; height: 380px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(87,121,234,0.28) 0%, transparent 68%);
+  pointer-events: none;
+}
+.cover-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 2.2px;
+  text-transform: uppercase; color: rgba(255,255,255,0.45);
+  margin-bottom: 18px;
+}
+.cover-title {
+  font-size: 50px; font-weight: 800; color: #fff;
+  line-height: 1.12; margin-bottom: 14px; max-width: 680px;
+}
+.cover-sub {
+  font-size: 20px; font-weight: 400; color: rgba(255,255,255,0.68);
+  margin-bottom: 34px; max-width: 540px;
+}
+.cover-pills { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cover-pill {
+  padding: 7px 20px; border-radius: 24px; font-size: 13px; font-weight: 700;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28);
+  color: #fff; backdrop-filter: blur(6px);
+}
+.cover-date { font-size: 13px; color: rgba(255,255,255,0.42); padding-right: 8px; }
+
+/* ════════════════════════════════
+   SLIDE 2 — PHASE A
+════════════════════════════════ */
+.slide-content { padding: 28px 36px 20px; display: flex; flex-direction: column; gap: 18px; }
+.slide-tag { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--blue); }
+.slide-title { font-size: 24px; font-weight: 800; color: var(--navy); line-height: 1.2; }
+.hdivider { height: 3px; width: 44px; background: linear-gradient(90deg, var(--blue), var(--blue-2)); border-radius: 3px; }
+
+/* Phase A grid: features left, timeline right */
+.phase-a-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px; flex: 1;
+}
+
+/* Feature cards */
+.feat-cards { display: flex; flex-direction: column; gap: 12px; }
+.feat-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-right: 4px solid var(--blue);
+  border-radius: var(--radius-md); padding: 14px 18px;
+  box-shadow: var(--shadow-sm); display: flex; gap: 14px; align-items: flex-start;
+}
+.feat-icon { font-size: 22px; line-height: 1; flex-shrink: 0; padding-top: 2px; }
+.feat-body {}
+.feat-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.feat-desc { font-size: 12.5px; color: var(--text-soft); line-height: 1.6; }
+.feat-meta { font-size: 11.5px; color: var(--text-soft); margin-top: 5px; }
+
+/* Timeline */
+.tl-wrap { display: flex; flex-direction: column; gap: 0; justify-content: center; }
+.tl-item {
+  display: flex; align-items: flex-start; gap: 14px; padding-bottom: 16px;
+  position: relative;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-left { display: flex; flex-direction: column; align-items: center; }
+.tl-dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0; z-index: 1;
+}
+.tl-dot.done     { background: var(--mint); }
+.tl-dot.progress { background: rgba(255,176,32,0.2); }
+.tl-dot.pending  { background: rgba(60,101,227,0.12); }
+.tl-line { width: 2px; flex: 1; min-height: 14px; background: var(--line); }
+.tl-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-md); padding: 12px 16px;
+  flex: 1; box-shadow: var(--shadow-sm);
+}
+.tl-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
+.tl-desc  { font-size: 12px; color: var(--text-soft); }
+
+/* ════════════════════════════════
+   SLIDE 3 — FOR DISCUSSION
+════════════════════════════════ */
+.discussion-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
+  gap: 12px;
+  flex: 1;
+}
+.d-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-md); padding: 14px 16px;
+  box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px;
+}
+.d-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.d-icon { font-size: 20px; line-height: 1; }
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.badge-blue    { background: rgba(60,101,227,0.12); color: var(--blue); }
+.badge-amber   { background: rgba(255,176,32,0.18); color: #7a5100; }
+.badge-magenta { background: rgba(175,0,95,0.12);   color: var(--magenta); }
+.badge-navy    { background: rgba(2,1,64,0.08);      color: var(--navy); }
+.badge-red     { background: rgba(215,38,61,0.1);    color: var(--red); }
+.badge-green   { background: var(--mint);             color: #1a6b18; }
+.d-title { font-size: 13px; font-weight: 700; color: var(--navy); }
+.d-desc  { font-size: 12px; color: var(--text-soft); line-height: 1.6; flex: 1; }
+
+/* Decision card accent strips */
+.d-card.dec { border-top: 3px solid transparent; }
+.d-card.dec-blue    { border-top-color: var(--blue); }
+.d-card.dec-amber   { border-top-color: var(--amber); }
+.d-card.dec-red     { border-top-color: var(--red); }
+.d-card.dec-green   { border-top-color: #1a9e40; }
+
+/* Rich combined table */
+.rich-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--line);
+}
+.rich-table th {
+  background: var(--bg-soft); color: var(--navy); font-weight: 700;
+  padding: 10px 14px; border-bottom: 2px solid var(--line-strong); text-align: right;
+  font-size: 12px;
+}
+.rich-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  color: var(--text); vertical-align: middle; font-size: 12.5px;
+}
+.rich-table tr:last-child td { border-bottom: none; }
+.rich-table tbody tr:hover td { background: var(--bg-soft-2); }
+
+.domain-cell {
+  font-weight: 700; font-size: 12px;
+  text-align: center; vertical-align: middle !important;
+  border-left: 1px solid var(--line);
+}
+.domain-ai     { color: var(--blue);    background: rgba(60,101,227,0.05); }
+.domain-integ  { color: var(--navy);    background: rgba(2,1,64,0.04); }
+.domain-expand { color: var(--blue-2);  background: rgba(87,121,234,0.05); }
+.domain-ml     { color: var(--magenta); background: rgba(175,0,95,0.05); }
+.domain-flag   { color: #7a5100;        background: rgba(255,176,32,0.07); }
+
+.feat-cell { max-width: 0; }
+.feat-name { font-weight: 700; color: var(--navy); font-size: 13px; margin-bottom: 3px; }
+.feat-note { font-size: 11.5px; color: var(--text-soft); line-height: 1.5; }
+
+.prio {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.prio-green  { background: rgba(26,158,64,0.1);  color: #1a6b18; }
+.prio-yellow { background: rgba(255,176,32,0.15); color: #7a5100; }
+.prio-red    { background: rgba(215,38,61,0.1);   color: var(--red); }
+
+/* Section labels */
+.section-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px;
+  text-transform: uppercase; color: var(--text-soft);
+  padding-bottom: 4px; border-bottom: 1px solid var(--line);
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+/* span helpers */
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+.span-4 { grid-column: span 4; }
+</style>
+</head>
+<body>
+
+<header id="header">
+  <div id="header-brand">
+    <div id="header-logo">AI</div>
+    <span id="header-product">מערכת AI — תביעות אכ"ע</span>
+  </div>
+  <span id="header-slide-title"></span>
+  <span id="header-counter"></span>
+</header>
+
+<div id="slides-container">
+
+  <!-- ══════════ SLIDE 1 — COVER ══════════ -->
+  <div class="slide slide-cover active" data-title="כותרת">
+    <div class="cover-orb"></div>
+    <div class="cover-eyebrow">מגדל ביטוח · אגף אכ"ע · 2025</div>
+    <div class="cover-title">מערכת AI לסיכום תביעות אכ"ע</div>
+    <div class="cover-sub">סטטוס פרויקט — Go / No-Go &amp; תכנון שלבים עתידיים</div>
+    <div class="cover-pills">
+      <span class="cover-pill">שלב א׳ | בביצוע</span>
+      <span class="cover-date">Q2 2026</span>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 2 — PHASE A ══════════ -->
+  <div class="slide slide-content" data-title="שלב א׳ — פיתוחים וציר זמן">
+    <div class="slide-tag">שלב א׳ · עד סוף Q2</div>
+    <div class="slide-title">פיתוחי שלב א׳ — יעלו עד סוף Q2</div>
+    <div class="hdivider"></div>
+    <div class="phase-a-grid">
+
+      <!-- Left: Features -->
+      <div class="feat-cards">
+        <div class="feat-card">
+          <div class="feat-icon">🧠</div>
+          <div class="feat-body">
+            <div class="feat-title">יצירת סיכום חכם</div>
+            <div class="feat-desc">סיכום אוטומטי בעזרת פרומפט אופטימלי למענה על מקרי תביעות אכ"ע. מיקוד: תביעות פתוחות בלבד (חדשות או מתמשכות).</div>
+            <div class="feat-meta">👤 באחריות: שיר</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">⚙️</div>
+          <div class="feat-body">
+            <div class="feat-title">מנגנון טריגר אוטומטי</div>
+            <div class="feat-desc">כניסת מסמך חדש מפעילה את ה-AI אוטומטית. סיכום על סמך מסמכים תחת אותה רמת תביעה. שמירת קובץ סוג <strong>סיכום</strong> במערכת האחזור.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📧</div>
+          <div class="feat-body">
+            <div class="feat-title">התראות מייל</div>
+            <div class="feat-desc">שליחה בתפוצה מותאמת לפי קבוצת AD. כולל: תביעות שסוכמו + דיווח על כשלים בתהליך.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Timeline -->
+      <div class="tl-wrap">
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-dot done">✅</div><div class="tl-line"></div></div>
+          <div class="tl-card"><div class="tl-title">הגדרת פרומפט ואפיון</div><div class="tl-desc">בחירת מודל, עיצוב פרומפט, אפיון טכני מלא</div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-dot progress">🔄</div><div class="tl-line"></div></div>
+          <div class="tl-card"><div class="tl-title">פיתוח טריגר אוטומטי</div><div class="tl-desc">בנייה ובדיקות מנגנון הפעלה בכניסת מסמך</div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-dot progress">🔄</div><div class="tl-line"></div></div>
+          <div class="tl-card"><div class="tl-title">אינטגרציה עם מערכת האחזור</div><div class="tl-desc">שמירת קבצי סיכום, חיבור מייל ותפוצות AD</div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-dot pending">⏳</div></div>
+          <div class="tl-card"><div class="tl-title">Go-Live — סוף Q2</div><div class="tl-desc">פריסה לייצור, ניטור ראשוני, Go/No-Go סופי</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 3 — FOR DISCUSSION ══════════ -->
+  <div class="slide slide-content" data-title="שלבים עתידיים — לדיון ותעדוף">
+    <div class="slide-tag">שלבים עתידיים · לדיון ותעדוף</div>
+    <div class="slide-title">שלבים עתידיים — לדיון ותעדוף</div>
+    <div class="hdivider"></div>
+
+    <div style="flex:1; overflow-y:auto;">
+      <table class="rich-table">
+        <thead>
+          <tr>
+            <th style="width:90px;">תחום</th>
+            <th>פיצ'ר ותיאור</th>
+            <th style="width:90px;">ערך מוצרי</th>
+            <th style="width:110px;">עדיפות מוצעת</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- בינה -->
+          <tr>
+            <td rowspan="3" class="domain-cell domain-ai">🧠 בינה</td>
+            <td class="feat-cell">
+              <div class="feat-name">א. ממשק UI לסיכום ידני</div>
+              <div class="feat-note">אפשרות למשתמש לבצע סיכום ידנית, למקרים שאינם עולים אוטומטית.</div>
+            </td>
+            <td>בינוני</td>
+            <td><span class="prio prio-green">🟢 גבוהה</span></td>
+          </tr>
+          <tr>
+            <td class="feat-cell">
+              <div class="feat-name">ב. תחקור מסמכים בשפה חופשית</div>
+              <div class="feat-note">שאילתות טבעיות על תיק התביעה — המשתמש שואל, המערכת מאתרת.</div>
+            </td>
+            <td>גבוה</td>
+            <td><span class="prio prio-green">🟢 גבוהה</span></td>
+          </tr>
+          <tr>
+            <td class="feat-cell">
+              <div class="feat-name">ג. ניווט ישיר מהסיכום למסמך המקור</div>
+              <div class="feat-note">קישורי עומק מהסיכום ישירות לקטע הרלוונטי בדוקומנט המקורי.</div>
+            </td>
+            <td>גבוה</td>
+            <td><span class="prio prio-yellow">🟡 בינונית</span></td>
+          </tr>
+
+          <!-- אינטגרציה -->
+          <tr>
+            <td class="domain-cell domain-integ">🏗️ אינטגרציה</td>
+            <td class="feat-cell">
+              <div class="feat-name">אינטגרציה למערכות ליבה — חיים 2000, NG</div>
+              <div class="feat-note">זיהוי וסיווג מידע על הלקוח, הפוליסה והתביעה ישירות ממערכות הליבה.</div>
+            </td>
+            <td>גבוה מאוד</td>
+            <td><span class="prio prio-yellow">🟡 בינונית</span></td>
+          </tr>
+
+          <!-- הרחבה -->
+          <tr>
+            <td class="domain-cell domain-expand">🌐 הרחבה</td>
+            <td class="feat-cell">
+              <div class="feat-name">הרחבה למוצרים נוספים</div>
+              <div class="feat-note">פנסיית נכות, ניתוחים — לאחר ייצוב שלב א׳ + ב׳.</div>
+            </td>
+            <td>גבוה</td>
+            <td><span class="prio prio-yellow">🟡 בינונית</span></td>
+          </tr>
+
+          <!-- מודל חקירה -->
+          <tr>
+            <td class="domain-cell domain-ml">🤖 מודל חקירה</td>
+            <td class="feat-cell">
+              <div class="feat-name">מודל ML — ניבוי צורך בחקירה <span class="badge badge-magenta" style="font-size:10px;padding:1px 8px;margin-right:6px;">פרויקט חדש</span></div>
+              <div class="feat-note">פרויקט חדש לחלוטין — ניבוי פרואקטיבי של צורך בחקירה על תביעה קיימת לצורך ייעול חקירות בניהול תביעה.</div>
+            </td>
+            <td>גבוה מאד</td>
+            <td><span class="prio prio-red">🔴 ארוך טווח</span></td>
+          </tr>
+
+          <!-- ישויות מסומנות -->
+          <tr>
+            <td class="domain-cell domain-flag">🚩 Blocklist</td>
+            <td class="feat-cell">
+              <div class="feat-name">ממשק איתור גורמים בעייתיים <span class="badge badge-amber" style="font-size:10px;padding:1px 8px;margin-right:6px;">POC · אכ"ע</span></div>
+              <div class="feat-note">איתור נותני שירות, לקוחות ובתי עסק בעלי דגלים אדומים (הונאות, חזרתיות מכוונת וכד') — התרעה למחלקות השונות. POC: אכ"ע על בסיס מידע מסתירות מהסיכום → פתרון רוחבי לכלל החברה.</div>
+            </td>
+            <td>גבוה מאוד</td>
+            <td><span class="prio prio-yellow">🟡 בינונית</span></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" onclick="navigate(-1)" disabled>→ קודם</button>
+  <button class="nav-btn primary" id="btn-next" onclick="navigate(1)">הבא ←</button>
+</div>
+
+<!-- PROGRESS -->
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total  = slides.length;
+let cur = 0;
+
+const hTitle   = document.getElementById('header-slide-title');
+const hCounter = document.getElementById('header-counter');
+const bar      = document.getElementById('progress-bar');
+const btnP     = document.getElementById('btn-prev');
+const btnN     = document.getElementById('btn-next');
+
+function update() {
+  hTitle.textContent   = slides[cur].dataset.title || '';
+  hCounter.textContent = `שקף ${cur + 1} מתוך ${total}`;
+  bar.style.width      = ((cur + 1) / total * 100) + '%';
+  btnP.disabled = cur === 0;
+  btnN.disabled = cur === total - 1;
+}
+
+function navigate(dir) {
+  const next = cur + dir;
+  if (next < 0 || next >= total) return;
+  slides[cur].classList.add('exit');
+  slides[cur].classList.remove('active');
+  setTimeout(() => {
+    slides[cur].classList.remove('exit');
+    cur = next;
+    slides[cur].classList.add('active');
+    update();
+  }, 20);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  navigate(1);
+  if (e.key === 'ArrowRight') navigate(-1);
+});
+
+update();
+</script>
+</body>
+</html>
